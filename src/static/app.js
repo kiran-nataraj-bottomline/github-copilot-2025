@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
-        // Build participants HTML: avatar + text, or empty-state message
+        // Build participants HTML: avatar + text, delete icon, or empty-state message
         const participantsHTML =
           details.participants && details.participants.length > 0
             ? `<ul class="participants-list">${details.participants
@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     .toUpperCase();
                   return `<li class="participant-item"><span class="avatar">${escapeHTML(
                     initials
-                  )}</span><span class="participant-text">${escapeHTML(p)}</span></li>`;
+                  )}</span><span class="participant-text">${escapeHTML(p)}</span><span class="delete-participant" title="Remove participant" data-activity="${escapeHTML(name)}" data-email="${escapeHTML(p)}">&#128465;</span></li>`;
                 })
                 .join("")}</ul>`
             : `<p class="no-participants">No participants yet. Be the first!</p>`;
@@ -71,6 +71,29 @@ document.addEventListener("DOMContentLoaded", () => {
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
+      });
+
+      // Add click handler for delete icons
+      document.querySelectorAll('.delete-participant').forEach((el) => {
+        el.addEventListener('click', async (e) => {
+          const activity = el.getAttribute('data-activity');
+          const email = el.getAttribute('data-email');
+          if (confirm(`Remove ${email} from ${activity}?`)) {
+            try {
+              const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, {
+                method: 'POST',
+              });
+              const result = await response.json();
+              if (response.ok) {
+                fetchActivities();
+              } else {
+                alert(result.detail || 'Failed to remove participant');
+              }
+            } catch (err) {
+              alert('Error removing participant');
+            }
+          }
+        });
       });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
